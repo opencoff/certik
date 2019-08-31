@@ -1,4 +1,4 @@
-// server.go -- server cert creation
+// server.go -- create a server cert
 //
 // (c) 2018 Sudhi Herle; License GPLv2
 //
@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/opencoff/ovpn-tool/pki"
+	"github.com/opencoff/go-utils"
 	flag "github.com/opencoff/pflag"
 )
 
@@ -28,12 +29,12 @@ func ServerCert(db string, args []string) {
 	var yrs uint = 2
 	var dns StringList
 	var ip net.IP
-	var port uint16 = 1194
+	var askPw bool
 
 	fs.UintVarP(&yrs, "validity", "V", yrs, "Issue server certificate with `N` years validity")
 	fs.VarP(&dns, "dnsname", "d", "Add `M` to list of DNS names for this server")
 	fs.IPVarP(&ip, "ip-address", "i", ip, "Use `S` as the server listening IP address")
-	fs.Uint16VarP(&port, "port", "p", port, "Use `P` as the server listening port number")
+	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the server private-key")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -42,21 +43,32 @@ func ServerCert(db string, args []string) {
 
 	args = fs.Args()
 	if len(args) < 1 {
-		warn("Insufficient arguments to 'init'\n")
+		warn("Insufficient arguments to 'server'\n")
 		fs.Usage()
 	}
 
-	cn := args[0]
+	ca := OpenCA(db)
+	defer ca.Close()
+
+	var pw string
+	var cn string = args[0]
+
+	if askPw {
+		var err error
+		prompt := fmt.Sprintf("Enter private-key password for server '%s'", cn)
+		pw, err = utils.Askpass(prompt, true)
+		if err != nil {
+			die("Can't get password: %s", err)
+		}
+	}
+
 	if strings.Index(cn, ".") > 0 {
 		dns.V = append(dns.V, cn)
 	}
 
 	if len(ip) == 0 && len(dns.V) == 0 {
-		warn("No server IP or hostnames specified; generated configs may be incomplete..")
+		warn("No server IP or hostnames specified; TLS Hostname verification may not be possible")
 	}
-
-	ca := OpenCA(db)
-	defer ca.Close()
 
 	ci := &pki.CertInfo{
 		Subject:  ca.Crt.Subject,
@@ -68,7 +80,7 @@ func ServerCert(db string, args []string) {
 
 	ci.Subject.CommonName = cn
 
-	srv, err := ca.NewServerCert(ci, "")
+	srv, err := ca.NewServerCert(ci, pw)
 	if err != nil {
 		die("can't create server cert: %s", err)
 	}

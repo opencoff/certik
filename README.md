@@ -187,31 +187,8 @@ The code is organized as a library & command line frontend for that library.
     * Puts the binary in an OS+Arch specific directory
     * Injects a git version-tag into the final binary ("linker resolved symbol")
 
-* Database encryption:
-    * User passphrase is first expanded to 64 bytes by hashing it via SHA-512.
-    * Every encryption uses a different key generated via Argon2i KDF. The
-      KDF uses the expanded passphrase with a random 32 byte salt.
-    * The KDF parameters are hardcoded in `db.go:kdf()` function;
-      it is currently `Time = 1`, `Mem = 1048576`, and `Threads = 8`.
-    * Database keys are entangled with the expanded passphrase via HMAC-SHA256.
-    * Database entries are individually encrypted in AEAD (AES-256-GCM) mode.
-      The AEAD nonce size is 32 bytes (instead of the golang default
-      of 12 bytes).
-    * Each encrypt operation uses a different key derived as above.
-    * The KDF salt is used as additional data in the AEAD construction.
-    * The AEAD nonce is a SHA-256 hash of the KDF salt; this saves
-      us from having to generate & save another random quantity.
-
 ## Guide to Source Code
-* `internal/ovpn/`: Core library that does certificate management and
-  storage.
-
-    - `cert.go`:   Certificate issuance & query routines
-    - `db.go`:     Cert storage in a boltdb instance
-    - `cipher.go`: DB encryption/decryption routines
-    - `str.go`:    Utility function to print a certificate in string format
-
-* `internal/utils`: Misc utilities for asking interactive password
+* Uses an external PKI library from [ovpn-tool](https://github.com/opencoff/ovpn-tool)
 
 * `src/`: Command line interface to the library capabilities. Each
   command is in its own file.

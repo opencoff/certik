@@ -29,7 +29,7 @@ func UserCert(db string, args []string) {
 	var email string
 
 	fs.UintVarP(&yrs, "validity", "V", yrs, "Issue user certificate with `N` years validity")
-	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the user certificate")
+	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the user private-key")
 	fs.StringVarP(&email, "email", "e", email, "Use `E` as the user's email address")
 
 	err := fs.Parse(args)

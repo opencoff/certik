@@ -26,9 +26,11 @@ func ListCRL(db string, args []string) {
 
 	var list bool
 	var outfile string
+	var crlvalid int
 
 	fs.BoolVarP(&list, "list", "l", false, "List revoked certificates")
 	fs.StringVarP(&outfile, "outfile", "o", "", "Write the CRL  to `F`")
+	fs.IntVarP(&crlvalid, "validity", "V", 30, "Make the CRL valid for `N` days")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -47,7 +49,7 @@ func ListCRL(db string, args []string) {
 	}
 
 	if !list {
-		pem, err := ca.CRL(30)
+		pem, err := ca.CRL(crlvalid)
 		if err != nil {
 			die("%s", err)
 		}
@@ -65,7 +67,7 @@ func ListCRL(db string, args []string) {
 }
 
 func crlUsage(fs *flag.FlagSet) {
-	fmt.Printf(`%s crl: Generate a new CRL or list revoked users
+	fmt.Printf(`%s crl: Generate a new CRL or list revoked certs
 
 Usage: %s DB crl [options]
 
