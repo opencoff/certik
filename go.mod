@@ -4,6 +4,6 @@ go 1.12
 
 require (
 	github.com/opencoff/go-utils v0.2.0
-	github.com/opencoff/ovpn-tool v0.5.0
+	github.com/opencoff/ovpn-tool v0.6.0
 	github.com/opencoff/pflag v0.3.3
 )

@@ -8,6 +8,8 @@ github.com/opencoff/ovpn-tool v0.4.0 h1:j1kFVHr8VsyOXV25hL+1S7EBAeqrvMAlZgHShDbU
 github.com/opencoff/ovpn-tool v0.4.0/go.mod h1:ueyna+rRdTT4zrOd/F06p/acX/eAzPRkmEAvh8VonYk=
 github.com/opencoff/ovpn-tool v0.5.0 h1:FU57Qq3eN0qahZj4J3tonqH8Mt++MkC5vkxhEJiFXO8=
 github.com/opencoff/ovpn-tool v0.5.0/go.mod h1:ueyna+rRdTT4zrOd/F06p/acX/eAzPRkmEAvh8VonYk=
+github.com/opencoff/ovpn-tool v0.6.0 h1:M1ZU/LoRMfyvTkHEcfaH1Kig3I8O85Avr5r3uab/Ekw=
+github.com/opencoff/ovpn-tool v0.6.0/go.mod h1:ueyna+rRdTT4zrOd/F06p/acX/eAzPRkmEAvh8VonYk=
 github.com/opencoff/pflag v0.3.2 h1:eE6lRYcxku82Tb7ZKgGBSzvmPXufwfRe/bpPFMzIdS4=
 github.com/opencoff/pflag v0.3.2/go.mod h1:mTLzGGUGda1Av3d34iAJlh0JIlRxmFZtmc6qoWPspK0=
 github.com/opencoff/pflag v0.3.3 h1:yohZkwYGPkB34WXvUQzU5GyLhImnjfePDARUaE8me3U=
