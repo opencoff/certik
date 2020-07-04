@@ -14,11 +14,11 @@ such as openssl. It is a simpler replacement for openssl(1).
    * "SSL-Client" attribute set on client certificates (nsCertType)
    * ECDSA with SHA512 is used as the signature algorithm
 
-## Building certiki
+## Building certik
 You will need a fairly recent golang toolchain (>1.10):
 
-    $ git clone https://github.com/opencoff/certiki
-    $ cd certiki
+    $ git clone https://github.com/opencoff/certik
+    $ cd certik
     $ ./build -s
 
 The build script puts the binary in a platform specific directory:
@@ -37,10 +37,10 @@ to build a statically linked binary for linux-amd64 architecture:
 
     $ ./build -s --arch linux-amd64
 
-## Invoking certiki
-The common pattern for invoking certiki is:
+## Invoking certik
+The common pattern for invoking certik is:
 
-    certiki DB CMD [options] [arguments]
+    certik DB CMD [options] [arguments]
 
 Where:
 * *DB* is the name of the certificate store (database). This is a
@@ -53,26 +53,26 @@ The tool writes the certificates, keys into an encrypted boltdb instance.
 
 The tool comes with builtin help:
 
-    $ ./bin/openbsd-amd64/certiki --help
+    $ ./bin/openbsd-amd64/certik --help
 
 Every subcommand comes with its own help; but, requires you to at least
 supply a database name as the first argument. e.g.,
 
-    $ ./bin/openbsd-amd64/certiki foo.db server --help
+    $ ./bin/openbsd-amd64/certik foo.db server --help
 
 ## Common Workflows
-In what follows, we will assume that you have built certiki and
+In what follows, we will assume that you have built certik and
 installed somewhere in your `$PATH`.
 
 ### Initialize a new CA
 Before any certificates are generated, one must first create a CA and
 initialize the certificate DB:
 
-    $ certiki -v foo.db init my-CA
+    $ certik -v foo.db init my-CA
 
 You can see the generated CA certificate via two ways:
 
-1. Using `-v` for the certiki's global options
+1. Using `-v` for the certik's global options
 2. Using the `list` command with the `--ca` option.
 
 In general, using the `-v` global option when generating the CA, server
@@ -91,7 +91,7 @@ An TLS server needs a few things:
 
 Creating a new server certificate/key pair:
 
-    $ certiki -v foo.db server -i IP.ADDR.ES server.domain.name
+    $ certik -v foo.db server -i IP.ADDR.ES server.domain.name
 
 Of course, you should use the appropriate values for `IP.ADDR.ES`
 and `server.domain.name` for your setup.
@@ -111,7 +111,7 @@ An TLS client certificate is quite simple - it just needs a
 common name. For convenience, you may use the email address as the 
 common Name.
 
-    $ certiki -v foo.db client user@domain.name
+    $ certik -v foo.db client user@domain.name
 
 You can ask the client private key to be encrypted with a user
 supplied passphrase by using the `-p` or `--password` option to the
@@ -123,7 +123,7 @@ takes the value in units of years.
 Once in a while you will want to delete users and prevent them from
 connecting to the TLS server. E.g.,
 
-    $ certiki -v foo.db delete user@domain.name user2@domain
+    $ certik -v foo.db delete user@domain.name user2@domain
 
 This only deletes the users from the certificate DB. You still need
 to generate a new CRL (Certificate Revocation List) and push it to
@@ -134,32 +134,32 @@ Once a user is deleted from the system, you will need to generate a
 new CRL and push it to the server. The command to generate a new
 CRL:
 
-    $ certiki -v foo.db crl -o crl.pem
+    $ certik -v foo.db crl -o crl.pem
 
 This write the PEM encoded CRL to `crl.pem`. You must copy this file
 to the OpenVPN server and reload (or restart) it.
 
 You can also just view a full list of revoked users:
 
-    $ certiki foo.db crl --list
+    $ certik foo.db crl --list
 
 ### See list of certificates managed by this CA
 To see a list of certificates in the database:
 
-    $ certiki foo.db list
+    $ certik foo.db list
 
 ### Exporting a Certificate & Key
 While the tool manages certificates, for use in a TLS client or server,
 we need to export the CA certificate, server certificate and key.
 To export a certificate & key configuration:
 
-    $ certiki foo.db export server.domain.name
-    $ certiki foo.db export user@domain.name
+    $ certik foo.db export server.domain.name
+    $ certik foo.db export user@domain.name
 
 This prints the PEM encoded cert & key to stdout. To write each to a
 separate file:
 
-    $ certiki foo.db export server.domain.name -o server
+    $ certik foo.db export server.domain.name -o server
 
 This will write the certificate into `server.crt` and key to
 `server.key`.
@@ -168,7 +168,7 @@ This will write the certificate into `server.crt` and key to
 The CA certificate anchors the root of trust; so, the TLS Server and
 Client both need the CA Certificate. One exports it like so:
 
-    $ certiki foo.db export --ca -o ca.crt
+    $ certik foo.db export --ca -o ca.crt
 
 
 ## TODO

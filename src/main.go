@@ -42,6 +42,7 @@ Where 'DB' points to the certificate database, and 'CMD' is one of:
     delete	      Delete a user and revoke their certificate
     user, client      Create a new user/client certificate
     crl		      List revoked certificates or generate CRL
+    help	      Show this help message
 
 Options:
 `, path.Base(os.Args[0]), os.Args[0])
@@ -63,6 +64,11 @@ Options:
 	}
 
 	db := args[0]
+
+	if db == "help" {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	var cmds = map[string]func(string, []string){
 		"init":   InitCmd,
@@ -90,6 +96,7 @@ Options:
 
 	fp(db, args[2:])
 }
+
 
 type Cert x509.Certificate
 
