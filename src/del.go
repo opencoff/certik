@@ -15,7 +15,7 @@ import (
 	flag "github.com/opencoff/pflag"
 )
 
-func DelUser(db string, args []string) {
+func Delete(db string, args []string) {
 	fs := flag.NewFlagSet("delete", flag.ExitOnError)
 	fs.Usage = func() {
 		delUsage(fs)
@@ -36,15 +36,24 @@ func DelUser(db string, args []string) {
 	defer ca.Close()
 
 	gone := 0
-
 	for _, cn := range args {
-		err := ca.DeleteUser(cn)
+		ck, err := ca.Find(cn)
 		if err != nil {
-			err = ca.DeleteServer(cn)
-			if err != nil {
-				warn("%s\n")
-				continue
-			}
+			warn("%s\n", err)
+			continue
+		}
+
+		switch {
+		case ck.IsServer:
+			err = ca.RevokeServer(cn)
+		case ck.IsCA:
+			err = ca.RevokeCA(cn)
+		default:
+			err = ca.RevokeClient(cn)
+		}
+
+		if err != nil {
+			warn("%s\n", err)
 		} else {
 			gone++
 			Print("Deleted %s ..\n", cn)

@@ -70,10 +70,15 @@ initialize the certificate DB:
 
     $ certik -v foo.db init my-CA
 
+You can optionally initialize a CA from a previously exported JSON
+dump:
+
+    $ certik -v foo.db init --from-json FILE
+
 You can see the generated CA certificate via two ways:
 
 1. Using `-v` for the certik's global options
-2. Using the `list` command with the `--ca` option.
+2. Using the `list` command with the `--root-ca` option.
 
 In general, using the `-v` global option when generating the CA, server
 or client certificates will print the certificate to stdout at the end.
@@ -188,7 +193,7 @@ The code is organized as a library & command line frontend for that library.
     * Injects a git version-tag into the final binary ("linker resolved symbol")
 
 ## Guide to Source Code
-* Uses an external PKI library from [ovpn-tool](https://github.com/opencoff/ovpn-tool)
+* Uses an external PKI library from [go-pki](https://github.com/opencoff/go-pki)
 
 * `src/`: Command line interface to the library capabilities. Each
   command is in its own file.

@@ -23,58 +23,49 @@ var (
 	_ pflag.Value = &StringList{}
 )
 
-type IPList struct {
-	V []net.IP
-}
+type IPList []net.IP
 
 func newIPList() *IPList {
-	v := &IPList{
-		V: make([]net.IP, 0, 4),
-	}
-	return v
+	return &IPList{}
 }
 
-func (i *IPList) Set(s string) error {
+func (ipl *IPList) Set(s string) error {
 	v := strings.Split(s, ",")
+	ips := make([]net.IP, 0, 4)
 	for _, x := range v {
 		ip := net.ParseIP(x)
 		if ip == nil {
 			return fmt.Errorf("can't parse IP Address '%s'", s)
 		}
-		i.V = append(i.V, ip)
+		ips = append(ips, ip)
 	}
 
+	*ipl = append(*ipl, ips...)
 	return nil
 }
 
-func (i *IPList) String() string {
+func (ipl *IPList) String() string {
 	var x []string
+	ips := []net.IP(*ipl)
 
-	for _, i := range i.V {
-		x = append(x, i.String())
+	for i := range ips {
+		x = append(x, ips[i].String())
 	}
-	z := strings.Join(x, ",")
-	return fmt.Sprintf("[%s]", z)
+	return fmt.Sprintf("[%s]", strings.Join(x, ","))
 }
 
-type StringList struct {
-	V []string
-}
+type StringList []string
 
 func newStringList() *StringList {
-	v := &StringList{
-		V: make([]string, 0, 4),
-	}
-	return v
+	return &StringList{}
 }
 
 func (i *StringList) Set(s string) error {
 	v := strings.Split(s, ",")
-	i.V = append(i.V, v...)
+	*i = append(*i, v...)
 	return nil
 }
 
 func (i *StringList) String() string {
-	z := strings.Join(i.V, ",")
-	return fmt.Sprintf("[%s]", z)
+	return fmt.Sprintf("[%s]", strings.Join([]string(*i), ","))
 }

@@ -14,7 +14,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/opencoff/ovpn-tool/pki"
+	"github.com/opencoff/go-pki"
 	"github.com/opencoff/go-utils"
 	flag "github.com/opencoff/pflag"
 )
@@ -28,13 +28,15 @@ func ServerCert(db string, args []string) {
 
 	var yrs uint = 2
 	var dns StringList
-	var ip net.IP
+	var ips IPList
 	var askPw bool
+	var signer string
 
 	fs.UintVarP(&yrs, "validity", "V", yrs, "Issue server certificate with `N` years validity")
 	fs.VarP(&dns, "dnsname", "d", "Add `M` to list of DNS names for this server")
-	fs.IPVarP(&ip, "ip-address", "i", ip, "Use `S` as the server listening IP address")
+	fs.VarP(&ips, "ip-address", "i", "Add `IP` to list of IP Addresses for this server")
 	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the server private-key")
+	fs.StringVarP(&signer, "sign-with", "s", "", "Use `S` as the signing CA [root-CA]")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -48,6 +50,13 @@ func ServerCert(db string, args []string) {
 	}
 
 	ca := OpenCA(db)
+	if len(signer) > 0 {
+		ica, err := ca.FindCA(signer)
+		if err != nil {
+			die("can't find signer %s: %s", signer, err)
+		}
+		ca = ica
+	}
 	defer ca.Close()
 
 	var pw string
@@ -63,21 +72,20 @@ func ServerCert(db string, args []string) {
 	}
 
 	if strings.Index(cn, ".") > 0 {
-		dns.V = append(dns.V, cn)
+		dns = append(dns, cn)
 	}
 
-	if len(ip) == 0 && len(dns.V) == 0 {
+	if len(ips) == 0 && len(dns) == 0 {
 		warn("No server IP or hostnames specified; TLS Hostname verification may not be possible")
 	}
 
 	ci := &pki.CertInfo{
-		Subject:  ca.Crt.Subject,
+		Subject:  ca.Subject,
 		Validity: years(yrs),
 
-		DNSNames:  dns.V,
-		IPAddress: ip,
+		DNSNames:    []string(dns),
+		IPAddresses: []net.IP(ips),
 	}
-
 	ci.Subject.CommonName = cn
 
 	srv, err := ca.NewServerCert(ci, pw)
@@ -85,7 +93,7 @@ func ServerCert(db string, args []string) {
 		die("can't create server cert: %s", err)
 	}
 
-	Print("New server cert:\n%s\n", Cert(*srv.Crt))
+	Print("New server cert:\n%s\n", Cert(*srv.Certificate))
 }
 
 func serverUsage(fs *flag.FlagSet) {

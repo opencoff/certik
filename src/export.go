@@ -9,12 +9,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	"github.com/opencoff/ovpn-tool/pki"
 	flag "github.com/opencoff/pflag"
 )
 
@@ -26,10 +26,13 @@ func ExportCert(db string, args []string) {
 	}
 
 	var outfile string
-	var showCA bool
+	var chain bool
+	var json, showCA bool
 
 	fs.StringVarP(&outfile, "outfile", "o", "", "Write the cert to `F`.crt (and key to `F`.key)")
-	fs.BoolVarP(&showCA, "ca", "", false, "Export the CA certificate")
+	fs.BoolVarP(&chain, "chain", "", false, "Export all the CA certs in the chain")
+	fs.BoolVarP(&json, "json", "j", false, "Dump DB in JSON format")
+	fs.BoolVarP(&showCA, "root-ca", "", false, "Export Root-CA in PEM format")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -39,9 +42,30 @@ func ExportCert(db string, args []string) {
 	ca := OpenCA(db)
 	defer ca.Close()
 
+	var cout io.Writer = os.Stdout
+	if len(outfile) > 0 && outfile != "-" {
+		var crtfile = outfile
+		if !strings.HasSuffix(outfile, ".crt") {
+			crtfile = fmt.Sprintf("%s.crt", outfile)
+		}
+		fd := mustOpen(crtfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+		defer fd.Close()
+
+		cout = fd
+	}
+
+	// Handle Json export first
+	if json {
+		err := ca.ExportJSON(cout)
+		if err != nil {
+			die("can't dump db: %s", err)
+		}
+		os.Exit(0)
+	}
+
 	if showCA {
-		show(ca, outfile)
-		return
+		fmt.Fprintf(cout, "%s\n", ca.PEM())
+		os.Exit(0)
 	}
 
 	args = fs.Args()
@@ -50,60 +74,56 @@ func ExportCert(db string, args []string) {
 	}
 
 	cn := args[0]
-
-	var cout io.Writer = os.Stdout
 	var kout io.Writer = os.Stdout
 	if len(outfile) > 0 && outfile != "-" {
-		crtfile := fmt.Sprintf("%s.crt", outfile)
 		keyfile := fmt.Sprintf("%s.key", outfile)
-		cfd := mustOpen(crtfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 		kfd := mustOpen(keyfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-		defer cfd.Close()
 		defer kfd.Close()
-
-		cout = cfd
 		kout = kfd
 	}
 
-	if c, err := ca.Find(cn); err == nil {
-		c, k := c.PEM()
-		cout.Write(c)
-		kout.Write(k)
-		return
+	c, err := ca.Find(cn)
+	if err != nil {
+		die("Can't find server or user %s", cn)
 	}
 
-	die("Can't find server or user %s", cn)
-}
-
-// show the CA
-func show(ca *pki.CA, outfile string) {
-	var out io.Writer = os.Stdout
-
-	if len(outfile) > 0 && outfile != "-" {
-		if strings.LastIndex(outfile, ".crt") < 0 {
-			outfile = fmt.Sprintf("%s.crt", outfile)
+	var pem []byte
+	var key []byte
+	if c.IsCA && chain {
+		cas, err := ca.ChainFor(c)
+		if err != nil {
+			die("can't find cert chain: %s", err)
 		}
-		fd := mustOpen(outfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-		defer fd.Close()
 
-		out = fd
+		var cw bytes.Buffer
+		for i := range cas {
+			ck := cas[i]
+			cw.Write(ck.PEM())
+		}
+
+		pem = cw.Bytes()
+		_, key = c.PEM()
+	} else {
+		pem, key = c.PEM()
 	}
 
-	pem := ca.PEM()
-	out.Write(pem)
+	cout.Write(pem)
+	kout.Write(key)
 }
 
 func exportUsage(fs *flag.FlagSet) {
+	prog := os.Args[0]
 	fmt.Printf(`%s export: Export a server or client cert & key
 
 Usage: %s DB export [options] name
-       %s DB export --ca [options]
+       %s DB export --root-ca [options]
+       %s DB export --json [options]
 
 Where 'DB' is the CA Database file and 'NAME' is the CommonName of the
 server or client credentials to be exported.
 
 Options:
-`, os.Args[0], os.Args[0], os.Args[0])
+`, prog, prog, prog, prog)
 
 	fs.PrintDefaults()
 	os.Exit(0)

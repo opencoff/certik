@@ -13,7 +13,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/opencoff/ovpn-tool/pki"
+	"github.com/opencoff/go-pki"
 	"github.com/opencoff/go-utils"
 	flag "github.com/opencoff/pflag"
 )
@@ -27,10 +27,12 @@ func UserCert(db string, args []string) {
 	var yrs uint = 2
 	var askPw bool
 	var email string
+	var signer string
 
 	fs.UintVarP(&yrs, "validity", "V", yrs, "Issue user certificate with `N` years validity")
 	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the user private-key")
 	fs.StringVarP(&email, "email", "e", email, "Use `E` as the user's email address")
+	fs.StringVarP(&signer, "sign-with", "s", "", "Use `S` as the signing CA [root-CA]")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -44,10 +46,18 @@ func UserCert(db string, args []string) {
 	}
 
 	ca := OpenCA(db)
+	if len(signer) > 0 {
+		ica, err := ca.FindCA(signer)
+		if err != nil {
+			die("can't find signer %s: %s", signer, err)
+		}
+		ca = ica
+	}
 	defer ca.Close()
 
 	var cn string = args[0]
 	var pw string
+	var emails []string
 
 	if askPw {
 		var err error
@@ -59,18 +69,17 @@ func UserCert(db string, args []string) {
 	}
 
 	// use CN as EmailAddress if one is not provided
-	if strings.Index(cn, "@") > 0 {
-		if len(email) == 0 {
-			email = cn
-		}
+	if len(email) > 0 {
+		emails = []string{email}
+	} else if strings.Index(cn, "@") > 0 {
+		emails = []string{cn}
 	}
 
 	ci := &pki.CertInfo{
-		Subject:        ca.Crt.Subject,
+		Subject:        ca.Subject,
 		Validity:       years(yrs),
-		EmailAddresses: []string{email},
+		EmailAddresses: emails,
 	}
-
 	ci.Subject.CommonName = cn
 
 	crt, err := ca.NewClientCert(ci, pw)
@@ -78,7 +87,7 @@ func UserCert(db string, args []string) {
 		die("can't create user cert: %s", err)
 	}
 
-	Print("New client cert:\n%s\n", Cert(*crt.Crt))
+	Print("New client cert:\n%s\n", Cert(*crt.Certificate))
 }
 
 func userUsage(fs *flag.FlagSet) {

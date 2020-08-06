@@ -9,11 +9,9 @@
 package main
 
 import (
-	"crypto/x509"
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	flag "github.com/opencoff/pflag"
 )
@@ -30,7 +28,7 @@ func ListCRL(db string, args []string) {
 
 	fs.BoolVarP(&list, "list", "l", false, "List revoked certificates")
 	fs.StringVarP(&outfile, "outfile", "o", "", "Write the CRL  to `F`")
-	fs.IntVarP(&crlvalid, "validity", "V", 30, "Make the CRL valid for `N` days")
+	fs.IntVarP(&crlvalid, "validity", "V", 1, "Make the CRL valid for `N` days")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -56,9 +54,14 @@ func ListCRL(db string, args []string) {
 
 		out.Write(pem)
 	} else {
-		err := ca.MapRevoked(func(t time.Time, z *x509.Certificate) {
-			fmt.Printf("%-16s  %#x revoked on %s\n", z.Subject.CommonName, z.SerialNumber, t)
-		})
+		rv, err := ca.ListRevoked()
+		if err != nil {
+			die("can't list revoked certs: %s", err)
+		}
+
+		for _, z := range rv {
+			fmt.Fprintf(out, "%-16s  %#x revoked on %s\n", z.Subject.CommonName, z.SerialNumber, z.When)
+		}
 
 		if err != nil {
 			die("%s", err)
