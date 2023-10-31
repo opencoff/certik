@@ -27,14 +27,14 @@ func ServerCert(db string, args []string) {
 	}
 
 	var yrs uint = 2
-	var dns StringList
-	var ips IPList
+	var dns []string
+	var ips []net.IP
 	var askPw bool
 	var signer string
 
 	fs.UintVarP(&yrs, "validity", "V", yrs, "Issue server certificate with `N` years validity")
-	fs.VarP(&dns, "dnsname", "d", "Add `M` to list of DNS names for this server")
-	fs.VarP(&ips, "ip-address", "i", "Add `IP` to list of IP Addresses for this server")
+	fs.StringSliceVarP(&dns, "dnsname", "d", []string{}, "Add `M` to list of DNS names for this server")
+	fs.IPSliceVarP(&ips, "ip-address", "i", []net.IP{}, "Add `IP` to list of IP Addresses for this server")
 	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the server private-key")
 	fs.StringVarP(&signer, "sign-with", "s", "", "Use `S` as the signing CA [root-CA]")
 
