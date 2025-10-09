@@ -31,12 +31,16 @@ func ServerCert(db string, args []string) {
 	var ips []net.IP
 	var askPw bool
 	var signer string
+	var envpw string
+	var nopw bool
 
 	fs.UintVarP(&yrs, "validity", "V", yrs, "Issue server certificate with `N` years validity")
 	fs.StringSliceVarP(&dns, "dnsname", "d", []string{}, "Add `M` to list of DNS names for this server")
 	fs.IPSliceVarP(&ips, "ip-address", "i", []net.IP{}, "Add `IP` to list of IP Addresses for this server")
 	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the server private-key")
 	fs.StringVarP(&signer, "sign-with", "s", "", "Use `S` as the signing CA [root-CA]")
+	fs.StringVarP(&envpw, "env-password", "E", "", "Use passphrase from environment variable `E`")
+	fs.BoolVarP(&nopw, "no-password", "", false, "Don't ask for a password for the private key")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -49,7 +53,7 @@ func ServerCert(db string, args []string) {
 		fs.Usage()
 	}
 
-	ca := OpenCA(db)
+	ca := OpenCA(db, envpw, nopw)
 	if len(signer) > 0 {
 		ica, err := ca.FindCA(signer)
 		if err != nil {

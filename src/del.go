@@ -23,6 +23,12 @@ func Delete(db string, args []string) {
 		delUsage(fs)
 	}
 
+	var envpw string
+	var nopw bool
+
+	fs.StringVarP(&envpw, "env-password", "E", "", "Use passphrase from environment variable `E`")
+	fs.BoolVarP(&nopw, "no-password", "", false, "Don't ask for a password for the private key")
+
 	err := fs.Parse(args)
 	if err != nil {
 		die("%s", err)
@@ -34,7 +40,7 @@ func Delete(db string, args []string) {
 		fs.Usage()
 	}
 
-	ca := OpenCA(db)
+	ca := OpenCA(db, envpw, nopw)
 	defer ca.Close()
 
 	gone := 0

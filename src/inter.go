@@ -26,9 +26,13 @@ func IntermediateCA(db string, args []string) {
 
 	var yrs uint = 2
 	var signer string
+	var envpw string
+	var nopw bool
 
 	fs.UintVarP(&yrs, "validity", "V", 5, "Issue CA root cert with `N` years validity")
 	fs.StringVarP(&signer, "sign-with", "s", "", "Use `S` as the signing CA [root-CA]")
+	fs.StringVarP(&envpw, "env-password", "E", "", "Use passphrase from environment variable `E`")
+	fs.BoolVarP(&nopw, "no-password", "", false, "Don't ask for a password for the private key")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -40,7 +44,7 @@ func IntermediateCA(db string, args []string) {
 		fs.Usage()
 	}
 
-	ca := OpenCA(db)
+	ca := OpenCA(db, envpw, nopw)
 	if len(signer) > 0 {
 		ica, err := ca.FindCA(signer)
 		if err != nil {

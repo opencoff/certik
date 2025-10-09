@@ -20,14 +20,28 @@ import (
 	flag "github.com/opencoff/pflag"
 )
 
-// Open an existing CA or fail
-func OpenCA(db string) *pki.CA {
-	// we only ask _once_
-	pw, err := utils.Askpass("Enter password for DB", false)
-	if err != nil {
-		die("%s", err)
+// Get a password if needed
+func getPass(dbname string, envpw string, nopw, confirm bool) string {
+	if nopw {
+		return ""
 	}
 
+	var pws string
+	var err error
+	if len(envpw) > 0 {
+		pws = os.Getenv(envpw)
+	} else {
+		pws, err = utils.Askpass("Enter password for DB", confirm)
+		if err != nil {
+			die("%s", err)
+		}
+	}
+	return pws
+}
+
+// Open an existing CA or fail
+func OpenCA(db string, envpw string, nopw bool) *pki.CA {
+	pw := getPass(db, envpw, nopw, false)
 	p := pki.Config{
 		Passwd: pw,
 	}
@@ -47,13 +61,16 @@ func InitCmd(dbfile string, args []string) {
 
 	var country, org, ou string
 	var yrs uint
-	var from string
+	var envpw, from string
+	var nopw bool
 
 	fs.StringVarP(&country, "country", "c", "US", "Use `C` as the country name")
 	fs.StringVarP(&org, "organization", "O", "", "Use `O` as the organization name")
 	fs.StringVarP(&ou, "organization-unit", "u", "", "Use `U` as the organization unit name")
 	fs.UintVarP(&yrs, "validity", "V", 5, "Issue CA root cert with `N` years validity")
 	fs.StringVarP(&from, "from-json", "j", "", "Initialize from an exported JSON dump")
+	fs.StringVarP(&envpw, "env-password", "E", "", "Use passphrase from environment variable `E`")
+	fs.BoolVarP(&nopw, "no-password", "", false, "Don't ask for a password for the private key")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -61,18 +78,14 @@ func InitCmd(dbfile string, args []string) {
 	}
 
 	var cn string
-	var pw string
 
 	args = fs.Args()
-	if len(args) > 0 || len(from) > 0 {
-		pw, err = utils.Askpass("Enter password for DB", true)
-		if err != nil {
-			die("%s", err)
-		}
-	} else {
+	if len(args) <= 0 && len(from) == 0 {
 		fs.Usage()
 		os.Exit(1)
 	}
+
+	pw := getPass(dbfile, envpw, nopw, true)
 
 	var ca *pki.CA
 	if len(from) > 0 {

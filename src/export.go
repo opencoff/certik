@@ -28,18 +28,22 @@ func ExportCert(db string, args []string) {
 	var outfile string
 	var chain bool
 	var json, showCA bool
+	var envpw string
+	var nopw bool
 
 	fs.StringVarP(&outfile, "outfile", "o", "", "Write the cert to `F`.crt (and key to `F`.key)")
 	fs.BoolVarP(&chain, "chain", "", false, "Export all the CA certs in the chain")
 	fs.BoolVarP(&json, "json", "j", false, "Dump DB in JSON format")
 	fs.BoolVarP(&showCA, "root-ca", "", false, "Export Root-CA in PEM format")
+	fs.StringVarP(&envpw, "env-password", "E", "", "Use passphrase from environment variable `E`")
+	fs.BoolVarP(&nopw, "no-password", "", false, "Don't ask for a password for the private key")
 
 	err := fs.Parse(args)
 	if err != nil {
 		die("%s", err)
 	}
 
-	ca := OpenCA(db)
+	ca := OpenCA(db, envpw, nopw)
 	defer ca.Close()
 
 	var cout io.Writer = os.Stdout

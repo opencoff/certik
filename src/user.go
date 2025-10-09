@@ -28,11 +28,15 @@ func UserCert(db string, args []string) {
 	var askPw bool
 	var email string
 	var signer string
+	var envpw string
+	var nopw bool
 
 	fs.UintVarP(&yrs, "validity", "V", yrs, "Issue user certificate with `N` years validity")
 	fs.BoolVarP(&askPw, "password", "p", false, "Ask for a password to protect the user private-key")
 	fs.StringVarP(&email, "email", "e", email, "Use `E` as the user's email address")
 	fs.StringVarP(&signer, "sign-with", "s", "", "Use `S` as the signing CA [root-CA]")
+	fs.StringVarP(&envpw, "env-password", "E", "", "Use passphrase from environment variable `E`")
+	fs.BoolVarP(&nopw, "no-password", "", false, "Don't ask for a password for the private key")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -45,7 +49,7 @@ func UserCert(db string, args []string) {
 		fs.Usage()
 	}
 
-	ca := OpenCA(db)
+	ca := OpenCA(db, envpw, nopw)
 	if len(signer) > 0 {
 		ica, err := ca.FindCA(signer)
 		if err != nil {
